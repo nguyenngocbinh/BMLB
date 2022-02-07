@@ -1,0 +1,21 @@
+---
+title: "Tuning models with workflowsets"
+author: "Nguyễn Ngọc Bình"
+date: "`format(Sys.Date(), '%Y-%m-%d')`"
+output: 
+  html_document:
+  code_download: true
+  code_folding: show
+  number_sections: yes
+  theme: "default"
+  toc: TRUE
+  toc_float: TRUE
+  dev: 'svg'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+

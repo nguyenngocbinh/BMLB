@@ -1,0 +1,64 @@
+---
+name: Bình
+surname: Nguyễn Ngọc
+position: "Bachelor"
+address: "National Economic University, Viet Nam"
+phone: +84 98 688 2207
+profilepic: mariecurie.jpg
+www: https://nguyenngocbinh.github.io/
+email: "nguyenngocbinhneu@gmail.com"
+twitter: nanabi88
+github: nguyenngocbinh
+linkedin: mariecurie
+date: "`r format(Sys.time(), '%B %Y')`"
+aboutme: "Marie is a Polish and naturalized-French physicist and chemist who conducts pioneering research on radioactivity."
+output: vitae::twentyseconds
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(vitae)
+```
+
+# Some stuff about me
+
+* I poisoned myself doing research.
+* I was the first woman to win a Nobel prize
+* I was the first person and only woman to win a Nobel prize in two different sciences.
+
+# Education
+
+```{r}
+library(tibble)
+tribble(
+  ~ Degree, ~ Year, ~ Institution, ~ Where,
+  "Bachelor in Mathematical Economics", "2006-10", "National Economic University", "Ha Noi, Viet Nam",
+) %>% 
+  detailed_entries(Degree, Year, Institution, Where)
+```
+
+# Nobel Prizes
+
+```{r}
+tribble(
+  ~Year, ~Type, ~Desc,
+  1903, "Physics", "Awarded for her work on radioactivity with Pierre Curie and Henri Becquerel",
+  1911, "Chemistry", "Awarded for the discovery of radium and polonium"
+) %>% 
+  brief_entries(
+    glue::glue("Nobel Prize in {Type}"),
+    Year, 
+    Desc
+  )
+```
+
+# Publications
+
+```{r}
+library(dplyr)
+knitr::write_bib(c("vitae", "tibble"), "packages.bib")
+
+bibliography_entries("packages.bib") %>%
+  arrange(desc(author$family), issued)
+```
+

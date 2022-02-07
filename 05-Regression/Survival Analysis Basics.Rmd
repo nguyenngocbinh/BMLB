@@ -1,0 +1,421 @@
+---
+title: "Kiến thức cơ bản về phân tích Survival"
+author: "Nguyễn Ngọc Bình"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output: 
+  html_document:
+  code_download: true
+  code_folding: show
+  number_sections: yes
+  theme: "default"
+  toc: TRUE
+  toc_float: TRUE
+  dev: 'svg'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Phân tích sự sống sót** tương ứng với tập hợp các phương pháp thống kê được sử dụng để điều tra thời gian xảy ra một sự kiện quan tâm.
+
+Phân tích sự sống sót được sử dụng trong nhiều lĩnh vực như:
+
+- Các nghiên cứu ung thư phân tích thời gian sống sót của bệnh nhân,
+- Xã hội học để "phân tích lịch sử sự kiện",
+- Trong kỹ thuật "phân tích thời gian thất bại",
+- Và trong lĩnh vực Ngân hàng "phân tích thời gian khách hàng vỡ nợ".
+
+Trong các bài toán về rủi ro ngân hàng, các câu hỏi nghiên cứu điển hình như:
+
+- Tác động của các đặc điểm của khách hàng nhất định đối đối với khả năng vỡ nợ là gì ?
+- Xác suất để một khách hàng vỡ nợ sau 12 tháng là bao nhiêu?
+- Có sự khác biệt về khả năng vỡ nợ giữa các nhóm khách hàng không?
+
+
+# Mục tiêu
+
+Mục đích của chương này là mô tả các khái niệm cơ bản của phân tích sự sống còn. Trong các nghiên cứu ung thư, hầu hết các phân tích tỷ lệ sống sót sử dụng các phương pháp sau:
+
+- Biểu đồ Kaplan-Meier vẽ các đường cong sinh tồn
+- Log-rank test để so sánh các đường cong sống sót của hai hoặc nhiều nhóm
+- Hồi quy mối nguy theo tỷ lệ cox để mô tả ảnh hưởng của các biến đối với tỷ lệ sống sót. Mô hình Cox được thảo luận trong chương tiếp theo: Mô hình mối nguy theo tỷ lệ Cox .
+
+Ở đây, chúng ta sẽ bắt đầu bằng cách giải thích các khái niệm cơ bản về phân tích sự sống còn, bao gồm:
+
+- Cách tạo và diễn giải các đường cong sinh tồn,
+- và cách định lượng và kiểm tra sự khác biệt về khả năng sống sót giữa hai hoặc nhiều nhóm bệnh nhân.
+
+Sau đó, chúng ta sẽ tiếp tục bằng cách mô tả phân tích đa biến sử dụng mô hình nguy cơ tỷ lệ Cox .
+
+
+# Các khái niệm cơ bản
+
+Ở đây, chúng ta bắt đầu bằng cách xác định các thuật ngữ cơ bản của phân tích sự sống còn bao gồm:
+
+- Thời gian tồn tại và sự kiện
+- Nhóm kiểm chứng (censoring)
+- Hàm sinh tồn và hàm nguy cơ
+
+## Thời gian sống sót và loại sự kiện trong nghiên cứu ung thư
+
+Có nhiều loại sự kiện khác nhau, bao gồm:
+
+- Tái phát (Relapse)
+- Sự tiến triển (Progression)
+- Cái chết (Death)
+
+Hai thước đo quan trọng nhất trong nghiên cứu ung thư bao gồm: i) thời gian chết ; và ii) thời gian sống sót không tái phát, tương ứng với thời gian từ khi đáp ứng điều trị đến khi bệnh tái phát. Nó còn được gọi là thời gian sống sót không bệnh tật và thời gian sống sót không biến cố.
+
+
+## Nhóm kiểm chứng
+
+Như đã đề cập ở trên, phân tích khả năng sống sót tập trung vào khoảng thời gian dự kiến cho đến khi xảy ra một sự kiện quan tâm (tái phát hoặc tử vong). Tuy nhiên, sự kiện có thể không được quan sát đối với một số cá nhân trong khoảng thời gian nghiên cứu, tạo ra cái gọi là quan sát được kiểm chứng.
+
+Nhóm kiểm chứng có thể phát sinh theo những cách sau:
+
+- một bệnh nhân chưa trải qua sự kiện quan tâm, chẳng hạn như tái phát hoặc tử vong, trong khoảng thời gian nghiên cứu;
+- một bệnh nhân bị mất để theo dõi trong thời gian nghiên cứu;
+- một bệnh nhân trải qua một sự kiện khác khiến không thể theo dõi thêm.
+
+Loại kiểm chứng này, được đặt tên là _right censoring_, được xử lý trong phân tích Sống sót.
+
+## Hàm sinh tồn và nguy cơ
+
+Hai xác suất liên quan được sử dụng để mô tả dữ liệu sống sót: xác suất sống sót và xác suất nguy cơ.
+
+Xác suất sống sót, còn được gọi là hàm sống sót, là xác suất mà một cá nhân sống sót từ thời gian gốc (ví dụ chẩn đoán ung thư) đến một thời điểm cụ thể trong tương lai.S(t)
+
+Nguy cơ, được ký hiệu là h(t), là xác suất mà một cá nhân đang được quan sát tại thời điểm t xảy ra sự kiện trong thời gian quan sát.
+
+# Ước tính sống sót của Kaplan-Meier
+
+Phương pháp Kaplan-Meier (KM) là một phương pháp phi tham số được sử dụng để ước tính xác suất sống sót từ các thời gian sống sót đã được quan sát (Kaplan và Meier, 1958).
+
+Xác suất sống sót tại thời điểm $t_i$, $S(t_i)$, được tính như sau:
+
+$$S(t_i) = S(t_{i-1})(1-\frac{d_i}{n_i})$$
+
+Trong đó:
+- $S(t_{i-1})$: xác suất sống sót tại $t_i$
+- $n_i$: số bệnh nhân còn sống ngay trước $t_i$
+- $d_i$: số sự kiện tại $t_i$
+- $t_0 = 0$, $S (0) = 1$
+
+Xác suất ước tính ($S(t)$) là một _step function_ chỉ thay đổi giá trị tại thời điểm của mỗi sự kiện. Cũng có thể tính toán khoảng tin cậy cho xác suất sống sót.
+
+Đường cong tỷ lệ sống sót của KM, một biểu đồ về xác suất sống sót của KM theo thời gian, cung cấp một bản tóm tắt hữu ích về dữ liệu có thể được sử dụng để ước tính các biện pháp như thời gian sống sót trung bình.
+
+# Phân tích sống sót trên R
+
+## Cài đặt và sử dụng 2 packages
+
+- _survival_ cho tính toán các phân tích tồn tại
+- _survminer_ cho để tóm tắt và vẽ hình kết quả phân tích sự sống sót
+
+```{r}
+library("survival")
+library("survminer")
+```
+
+## Dữ liệu
+
+Chúng tôi sẽ sử dụng dữ liệu ung thư phổi có sẵn trong gói _survival_.
+
+```{r}
+data("lung")
+head(lung)
+```
+- inst: Mã tổ chức
+- time: Thời gian tồn tại tính bằng ngày
+- status: trạng thái kiểm chứng 1 = kiểm chứng, 2 = chết
+- age: Tuổi tính theo năm
+- sex: Nam = 1, Nữ = 2
+- ph.ecog: Điểm hiệu suất ECOG (0 = tốt 5 = chết)
+- ph.karno: Điểm hiệu suất của Karnofsky (xấu = 0-tốt = 100) do bác sĩ đánh giá
+- pat.karno: Điểm hiệu suất của Karnofsky theo đánh giá của bệnh nhân
+- meal.cal: Lượng calo tiêu thụ trong bữa ăn
+- wt.loss: Giảm cân trong sáu tháng qua
+
+## Tính toán các đường cong sinh tồn: survfit ()
+
+Hàm survfit() (trong gói _survival_) có thể được sử dụng để tính toán ước lượng sống sót theo Kaplan-Meier. Các đối số chính của nó bao gồm:
+
+- một đối tượng survival được tạo bằng cách sử dụng hàm _Surv()_
+- và tập dữ liệu chứa các biến.
+
+Để tính toán các đường cong _survival_, hãy nhập cái này:
+
+```{r}
+fit <- survfit(Surv(time, status) ~ sex, data = lung)
+print(fit)
+```
+Nếu bạn muốn hiển thị bản tóm tắt đầy đủ hơn về các đường cong sinh tồn, hãy nhập vào:
+
+```{r, eval=FALSE}
+# Summary of survival curves
+summary(fit)
+# Access to the sort summary table
+summary(fit)$table
+```
+
+## Tiếp cận giá trị được trả về bởi survfit()
+
+Hàm _survfit()_ trả về danh sách các biến, bao gồm các thành phần sau:
+
+
+- n: tổng số chủ thể trong mỗi đường cong.
+- time: các điểm thời gian trên đường cong.
+- n.risk: số đối tượng gặp rủi ro tại thời điểm t
+- n.event: số sự kiện xảy ra tại thời điểm t.
+- n.censor: số đối tượng bị kiểm duyệt, thoát khỏi nhóm rủi ro, không có sự kiện, tại thời điểm t.
+- _lower,upper_: giới hạn tin cậy dưới và trên cho đường cong, tương ứng.
+- strata: chỉ ra sự phân tầng của ước lượng đường cong. Nếu phân tầng is not NULL, có nhiều đường cong trong kết quả. Các mức của phân tầng (factor) là nhãn cho các đường cong.
+
+Các thành phần có thể được truy cập như sau:
+
+```{r}
+d <- data.frame(time = fit$time,
+                  n.risk = fit$n.risk,
+                  n.event = fit$n.event,
+                  n.censor = fit$n.censor,
+                  surv = fit$surv,
+                  upper = fit$upper,
+                  lower = fit$lower
+                  )
+head(d)
+```
+
+## Vẽ hình các đường cong sinh tồn
+
+Chúng ta sẽ sử dụng hàm ggsurvplot() (trong gói _Survminer_) để tạo ra các đường cong sinh tồn cho hai nhóm đối tượng.
+
+Nó cũng có thể hiển thị:
+
+- giới hạn tin cậy 95% của hàm Survivor bằng cách sử dụng đối số conf.int = TRUE .
+- số lượng và/hoặc tỷ lệ cá nhân gặp rủi ro theo thời gian sử dụng lựa chọn _risk.table_. Các giá trị được phép cho rủi ro. Bảng bao gồm:
+
+  - _TRUE_ hoặc _FALSE_ xác định có hiển thị hay không bảng rủi ro. Mặc định là FALSE.
+  - “_absolute_” or “_percentage_”: để hiển thị số tuyệt đối và tỷ lệ phần trăm đối tượng gặp rủi ro tương ứng theo thời gian. Sử dụng “_abs_pct_” để hiển thị cả số tuyệt đối và tỷ lệ phần trăm.
+  
+- p-value của _Log-Rank test_ so sánh các nhóm bằng cách sử dụng pval = TRUE .
+- đường ngang / dọc ở mức tồn tại trung bình bằng cách sử dụng đối số _surv.median.line_. Các giá trị được phép bao gồm một trong c (“none”, “hv”, “h”, “v”). v: dọc, h: ngang.
+
+```{r}
+# Change color, linetype by strata, risk.table color by strata
+ggsurvplot(fit,
+          pval = TRUE, conf.int = TRUE,
+          risk.table = TRUE, # Add risk table
+          risk.table.col = "strata", # Change risk table color by groups
+          linetype = "strata", # Change line type by groups
+          surv.median.line = "hv", # Specify median survival
+          ggtheme = theme_bw(), # Change ggplot2 theme
+          palette = c("#E7B800", "#2E9FDF"))
+```
+
+
+Biểu đồ có thể được tùy chỉnh thêm bằng cách sử dụng các đối số sau:
+
+- conf.int.style = “step” để thay đổi kiểu của dải khoảng tin cậy.
+- xlab để thay đổi nhãn trục x.
+- break.time.by = 200 ngắt trục x trong khoảng thời gian 200.
+- risk.table = “abs_pct” để hiển thị cả số lượng tuyệt đối và tỷ lệ phần trăm các cá nhân có nguy cơ.
+- risk.table.y.text.col = TRUE và risk.table.y.text = FALSE để cung cấp các thanh thay vì tên trong chú thích văn bản của chú giải bảng rủi ro.
+- ncensor.plot = TRUE để vẽ biểu đồ số đối tượng bị kiểm duyệt tại thời điểm t. Theo đề xuất của Marcin - Kosinski, Đây là một phản hồi bổ sung tốt cho các đường cong sinh tồn, để người ta có thể nhận ra: đường cong sinh tồn trông như thế nào, số lượng rủi ro là bao nhiêu VÀ nguyên nhân khiến tập hợp rủi ro trở nên nhỏ hơn: có phải gây ra bởi các sự kiện hoặc bởi các sự kiện được kiểm duyệt?
+- Legend.labs để thay đổi nhãn chú giải.
+
+```{r}
+ggsurvplot(
+   fit,                     # survfit object with calculated statistics.
+   pval = TRUE,             # show p-value of log-rank test.
+   conf.int = TRUE,         # show confidence intervals for 
+                            # point estimaes of survival curves.
+   conf.int.style = "step",  # customize style of confidence intervals
+   xlab = "Time in days",   # customize X axis label.
+   break.time.by = 200,     # break X axis in time intervals by 200.
+   ggtheme = theme_light(), # customize plot and risk table with a theme.
+   risk.table = "abs_pct",  # absolute number and percentage at risk.
+  risk.table.y.text.col = T,# colour risk table text annotations.
+  risk.table.y.text = FALSE,# show bars instead of names in text annotations
+                            # in legend of risk table.
+  ncensor.plot = TRUE,      # plot the number of censored subjects at time t
+  surv.median.line = "hv",  # add the median survival pointer.
+  legend.labs = 
+    c("Male", "Female"),    # change legend labels.
+  palette = 
+    c("#E7B800", "#2E9FDF") # custom color palettes.
+)
+```
+
+Biểu đồ Kaplan-Meier có thể được hiểu như sau:
+
+Trục hoành (trục x) biểu thị thời gian tính bằng ngày và trục tung (trục y) thể hiện xác suất sống sót hoặc tỷ lệ người sống sót. Các đường biểu diễn đường cong sinh tồn của hai nhóm. Sự sụt giảm thẳng đứng trong các đường cong biểu thị một sự kiện. Dấu tick dọc trên các đường cong có nghĩa là bệnh nhân đã được kiểm duyệt vào thời điểm này.
+
+- Tại thời điểm 0, xác suất sống sót là 1,0 (hoặc 100% người tham gia còn sống).
+- Tại thời điểm 250, xác suất sống sót là khoảng 0,55 (hoặc 55%) đối với giới tính = 1 và 0,75 (hoặc 75%) đối với giới tính = 2.
+- Thời gian sống sót trung bình là khoảng 270 ngày đối với giới tính = 1 và 426 ngày đối với giới tính = 2, cho thấy thời gian sống sót đối với giới tính = 2 tốt hơn so với giới tính = 1
+
+
+Thời gian sống sót trung bình cho mỗi nhóm có thể được lấy bằng cách sử dụng mã dưới đây:
+
+```{r}
+summary(fit)$table
+```
+
+Thời gian sống sót trung bình cho giới tính = 1 (Nhóm nam) là 270 ngày, trái ngược với 426 ngày cho giới tính = 2 (Nữ). Có vẻ như có một lợi thế sống sót cho phụ nữ bị ung thư phổi so với nam giới. Tuy nhiên, để đánh giá liệu sự khác biệt này có ý nghĩa về mặt thống kê hay không đòi hỏi một bài kiểm tra thống kê chính thức, một chủ đề sẽ được thảo luận trong các phần tiếp theo.
+
+>> Lưu ý rằng, các giới hạn tin cậy rất rộng ở phần đuôi của các đường cong, khiến cho việc diễn giải có ý nghĩa trở nên khó khăn. Điều này có thể được giải thích là do trong thực tế, thường có những bệnh nhân mất khả năng theo dõi hoặc còn sống khi kết thúc theo dõi. Do đó, có thể hợp lý để rút ngắn biểu đồ trước khi kết thúc quá trình theo dõi trên trục x (Pocock và cộng sự, 2002).
+
+Các đường cong sự tồn tại có thể được rút ngắn bằng cách sử dụng đối số xlim như sau:
+
+```{r}
+ggsurvplot(fit,
+          conf.int = TRUE,
+          risk.table.col = "strata", # Change risk table color by groups
+          ggtheme = theme_bw(), # Change ggplot2 theme
+          palette = c("#E7B800", "#2E9FDF"),
+          xlim = c(0, 600))
+```
+
+>> Lưu ý rằng, ba phép biến đổi thường được sử dụng có thể được chỉ định bằng cách sử dụng đối số fun :
+"Log": log transformation của hàm sống sót,
+“event”: biểu đồ các sự kiện tích lũy (f (y) = 1-y). Nó còn được gọi là tỷ lệ tích lũy,
+“Cumhaz”: vẽ biểu đồ của hàm nguy cơ tích lũy (f (y) = -log (y))
+
+Ví dụ: để vẽ các sự kiện tích lũy
+
+```{r}
+ggsurvplot(fit,
+          conf.int = TRUE,
+          risk.table.col = "strata", # Change risk table color by groups
+          ggtheme = theme_bw(), # Change ggplot2 theme
+          palette = c("#E7B800", "#2E9FDF"),
+          fun = "event")
+```
+
+
+Nguy cơ tích lũy thường được sử dụng để ước tính xác suất nguy hiểm. Nó được định nghĩa là $H(t) = -log(survival function) = -log(S(t))$. Nguy cơ tích lũy H(t) có thể được hiểu là tử vong tích lũy. Nói cách khác, nó tương ứng với số lượng sự kiện sẽ được mong đợi đối với mỗi cá nhân tại thời điểm t nếu sự kiện đó là một quá trình lặp lại.
+
+Để vẽ biểu đồ nguy cơ tích lũy
+
+```{r}
+ggsurvplot(fit,
+          conf.int = TRUE,
+          risk.table.col = "strata", # Change risk table color by groups
+          ggtheme = theme_bw(), # Change ggplot2 theme
+          palette = c("#E7B800", "#2E9FDF"),
+          fun = "cumhaz")
+```
+
+
+## Kaplan-Meier life table: tóm tắt các đường cong sinh tồn
+
+Như đã đề cập ở trên, bạn có thể sử dụng hàm summary() để có một bản tóm tắt hoàn chỉnh về các đường cong tồn tại:
+
+```{r}
+summary(fit)
+```
+
+Cũng có thể sử dụng hàm _surv_summary()_ [trong gói survminer ] để nhận tóm tắt về các đường cong sinh tồn. So với hàm _summary()_ mặc định, _surv_summary()_ tạo một khung dữ liệu chứa một bản tóm tắt đẹp từ các kết quả _survfit_.
+
+```{r}
+res.sum <- surv_summary(fit)
+head(res.sum)
+```
+
+Hàm _surv_summary()_ trả về một khung dữ liệu với các cột sau:
+
+- time: thời điểm mà đường cong có một bước.
+- n.risk: số đối tượng gặp rủi ro tại thời điểm t.
+- n.event: số sự kiện xảy ra tại thời điểm t.
+- n.censor: số lượng sự kiện được kiểm duyệt.
+- surv: ước tính xác suất sống sót.
+- std.err: sai số tiêu chuẩn của xác suất sống sót.
+- upper: cận trên của khoảng tin cậy
+- lower: cận dưới của khoảng tin cậy
+- strata: chỉ ra sự phân tầng của ước lượng đường cong. Các mức của phần tầng (factor) là nhãn cho các đường cong.
+
+Trong một tình huống, khi các đường cong tồn tại đã được gắn với một hoặc nhiều biến, đối tượng _surv_summary_ chứa các cột bổ sung đại diện cho các biến. Điều này làm cho nó có thể đối mặt với đầu ra của _ggsurvplot_ theo tầng hoặc theo một số kết hợp của các yếu tố.
+
+Đối tượng _surv_summary_ cũng có một thuộc tính có tên là 'table' chứa thông tin về các đường cong sinh tồn, bao gồm các đường trung vị của sự sống sót với khoảng tin cậy, cũng như, tổng số đối tượng và số lượng sự kiện trong mỗi đường cong. Để tiếp cận vào thuộc tính 'table', hãy nhập vào:
+
+```{r}
+attr(res.sum, "table")
+```
+
+## Log-Rank test so sánh các đường cong sống sót: survdiff()
+
+_Log-Rank test_ là phương pháp được sử dụng rộng rãi nhất để so sánh hai hoặc nhiều đường cong sống sót. Giả thuyết không (_null hypothesis_) là không có sự khác biệt về khả năng sống sót giữa hai nhóm. _Log-Rank test_ là kiểm định phi tham số, không đưa ra giả định nào về các phân phối tồn tại. Về cơ bản, _Log-Rank test_ so sánh số lượng sự kiện quan sát được trong mỗi nhóm với những gì sẽ được mong đợi nếu giả thuyết vô hiệu là đúng (tức là, nếu các đường cong sống sót giống hệt nhau). Thống kê thứ hạng _Log-Rank_ được phân phối gần đúng dưới dạng thống kê kiểm định _Chi-square_.
+
+Hàm survdiff() [trong gói _survival_] có thể được sử dụng để tính toán _Log-Rank test_ so sánh hai hoặc nhiều đường cong sinh tồn.
+
+survdiff() có thể được sử dụng như sau:
+
+```{r}
+surv_diff <- survdiff(Surv(time, status) ~ sex, data = lung)
+surv_diff
+```
+
+Hàm trả về danh sách các thành phần, bao gồm:
+
+- n: số chủ thể trong mỗi nhóm.
+- obs: số lượng sự kiện được quan sát có trọng số trong mỗi nhóm.
+- exp: số lượng sự kiện dự kiến có trọng số trong mỗi nhóm.
+- chisq: thống kê chisquare để kiểm tra sự bằng nhau.
+- strata: (tùy chọn) số lượng đối tượng có trong mỗi tầng.
+
+>> _Log-Rank test_ về sự khác biệt trong khả năng sống sót cho giá trị p là p = 0,0013, cho thấy rằng các nhóm giới tính có sự khác biệt đáng kể về khả năng sống sót.
+
+## Fit complex survival curves
+
+Trong phần này, chúng tôi sẽ tính toán các đường cong sống sót bằng cách sử dụng kết hợp nhiều yếu tố. Tiếp theo, chúng ta sẽ đối mặt với đầu ra của _ggsurvplot()_ bằng sự kết hợp của các yếu tố
+
+Điều chỉnh các đường cong tồn tại (phức tạp) bằng cách sử dụng tập dữ liệu **colon**
+
+```{r}
+require("survival")
+fit2 <- survfit( Surv(time, status) ~ sex + rx + adhere,
+                data = colon )
+```
+
+
+Biểu diễn kết quả đầu ra bằng _survminer_. Biểu đồ dưới đây cho thấy các đường cong sống sót của biến giới tính được biểu thị theo các giá trị của rx & adhere.
+
+```{r}
+# Plot survival curves by sex and facet by rx and adhere
+ggsurv <- ggsurvplot(fit2, fun = "event", conf.int = TRUE,
+                     ggtheme = theme_bw())
+   
+ggsurv$plot +theme_bw() + 
+  theme (legend.position = "right")+
+  facet_grid(rx ~ adhere)
+```
+
+# Tóm tắt
+
+Phân tích tồn tại là một tập hợp các phương pháp tiếp cận thống kê để phân tích dữ liệu trong đó biến kết quả được quan tâm là thời gian cho đến khi một sự kiện xảy ra.
+
+Dữ liệu tồn tại thường được mô tả và mô hình hóa theo hai hàm liên quan:
+
+- Hàm sống sót đại diện cho xác suất mà một cá nhân sống sót từ thời điểm xuất phát đến một thời điểm nào đó ngoài thời gian t. Nó thường được ước tính bằng phương pháp Kaplan-Meier. _logrank_ test có thể được sử dụng để kiểm tra sự khác biệt giữa các đường cong sống sót cho các nhóm, chẳng hạn như nhóm điều trị.
+
+- Hàm nguy cơ cung cấp khả năng xảy ra tức thời của một sự kiện tại một thời điểm, cho khả năng tồn tại cho đến thời điểm đó. Nó được sử dụng chủ yếu như một công cụ chẩn đoán hoặc xác định một mô hình toán học để phân tích tỷ lệ sống sót.
+
+Trong bài viết này, chúng tôi trình bày cách thực hiện và trực quan hóa các phân tích tỷ lệ sống bằng cách sử dụng kết hợp hai gói R: _survival_ (để phân tích) và _survminer_ (để hiển thị).
+
+
+# Tham khảo
+
+- Clark TG, Bradburn MJ, Love SB and Altman DG. Survival Analysis Part I: Basic concepts and first analyses. British Journal of Cancer (2003) 89, 232 – 238
+
+- Kaplan EL, Meier P (1958) Nonparametric estimation from incomplete observations. J Am Stat Assoc 53: 457–481.
+
+- Pocock S, Clayton TC, Altman DG (2002) Survival plots of time-to-event outcomes in clinical trials: good practice and pitfalls. Lancet 359: 1686– 1689.
+
+
+```{r}
+# http://www.sthda.com/english/wiki/survival-analysis-basics
+```
+
+
+
