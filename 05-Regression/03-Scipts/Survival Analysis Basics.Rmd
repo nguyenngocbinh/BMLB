@@ -4,13 +4,13 @@ author: "Nguyễn Ngọc Bình"
 date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 output: 
   html_document:
-  code_download: true
-  code_folding: show
-  number_sections: yes
-  theme: "default"
-  toc: TRUE
-  toc_float: TRUE
-  dev: 'svg'
+    code_download: false
+    code_folding: show
+    number_sections: yes
+    theme: "default"
+    toc: TRUE
+    toc_float: TRUE
+    dev: 'svg'
 ---
 
 ```{r setup, include=FALSE}
@@ -68,19 +68,19 @@ Có nhiều loại sự kiện khác nhau, bao gồm:
 Hai thước đo quan trọng nhất trong nghiên cứu ung thư bao gồm: i) thời gian chết ; và ii) thời gian sống sót không tái phát, tương ứng với thời gian từ khi đáp ứng điều trị đến khi bệnh tái phát. Nó còn được gọi là thời gian sống sót không bệnh tật và thời gian sống sót không biến cố.
 
 
-## Nhóm kiểm chứng
+## Nhóm kiểm chứng (censoring)
 
-Như đã đề cập ở trên, phân tích khả năng sống sót tập trung vào khoảng thời gian dự kiến cho đến khi xảy ra một sự kiện quan tâm (tái phát hoặc tử vong). Tuy nhiên, sự kiện có thể không được quan sát đối với một số cá nhân trong khoảng thời gian nghiên cứu, tạo ra cái gọi là quan sát được kiểm chứng.
+Như đã đề cập ở trên, phân tích khả năng sống sót tập trung vào khoảng thời gian dự kiến cho đến khi xảy ra một sự kiện quan tâm (tái phát hoặc tử vong). Tuy nhiên, sự kiện có thể không xảy ra đối với một số cá nhân trong khoảng thời gian nghiên cứu, gọi là quan sát được kiểm chứng.
 
 Nhóm kiểm chứng có thể phát sinh theo những cách sau:
 
-- một bệnh nhân chưa trải qua sự kiện quan tâm, chẳng hạn như tái phát hoặc tử vong, trong khoảng thời gian nghiên cứu;
-- một bệnh nhân bị mất để theo dõi trong thời gian nghiên cứu;
+- một bệnh nhân chưa trải qua sự kiện đang quan tâm, chẳng hạn như tái phát hoặc tử vong, trong khoảng thời gian nghiên cứu;
+- một bệnh nhân bị mất theo dõi trong thời gian nghiên cứu;
 - một bệnh nhân trải qua một sự kiện khác khiến không thể theo dõi thêm.
 
 Loại kiểm chứng này, được đặt tên là _right censoring_, được xử lý trong phân tích Sống sót.
 
-## Hàm sinh tồn và nguy cơ
+## Hàm sinh tồn và nguy cơ (survival and hazard functions)
 
 Hai xác suất liên quan được sử dụng để mô tả dữ liệu sống sót: xác suất sống sót và xác suất nguy cơ.
 
@@ -97,6 +97,7 @@ Xác suất sống sót tại thời điểm $t_i$, $S(t_i)$, được tính nh�
 $$S(t_i) = S(t_{i-1})(1-\frac{d_i}{n_i})$$
 
 Trong đó:
+
 - $S(t_{i-1})$: xác suất sống sót tại $t_i$
 - $n_i$: số bệnh nhân còn sống ngay trước $t_i$
 - $d_i$: số sự kiện tại $t_i$
@@ -113,7 +114,7 @@ Xác suất ước tính ($S(t)$) là một _step function_ chỉ thay đổi gi
 - _survival_ cho tính toán các phân tích tồn tại
 - _survminer_ cho để tóm tắt và vẽ hình kết quả phân tích sự sống sót
 
-```{r}
+```{r,warning=FALSE}
 library("survival")
 library("survminer")
 ```
@@ -123,7 +124,6 @@ library("survminer")
 Chúng tôi sẽ sử dụng dữ liệu ung thư phổi có sẵn trong gói _survival_.
 
 ```{r}
-data("lung")
 head(lung)
 ```
 - inst: Mã tổ chức
@@ -413,7 +413,7 @@ Trong bài viết này, chúng tôi trình bày cách thực hiện và trực q
 - Pocock S, Clayton TC, Altman DG (2002) Survival plots of time-to-event outcomes in clinical trials: good practice and pitfalls. Lancet 359: 1686– 1689.
 
 
-```{r}
+```{r, include=FALSE}
 # http://www.sthda.com/english/wiki/survival-analysis-basics
 ```
 
