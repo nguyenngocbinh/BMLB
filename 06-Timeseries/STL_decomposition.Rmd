@@ -1,0 +1,165 @@
+---
+title: "STL phân rã chuỗi thời gian"
+author: "Nguyễn Ngọc Bình"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output: 
+  html_document:
+    code_download: false
+    code_folding: show
+    number_sections: yes
+    theme: "default"
+    toc: TRUE
+    toc_float: TRUE
+    dev: 'svg'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Giới thiệu
+
+- Dự báo chuỗi thời gian là một lĩnh vực nhỏ của phân tích chuỗi thời gian, trong đó các phép đo lịch sử được lập mô hình để mô tả các đặc điểm cơ bản của những thứ có thể quan sát được và được ngoại suy trong tương lai.
+
+- Trong một vài thập kỷ, lĩnh vực phân tích chuỗi thời gian đã bị thống trị bởi phương pháp thống kê. Một trong những mô hình quan trọng nhất và thường được sử dụng là Đường trung bình động tích hợp tự hồi quy (AutoRegressive Integrated Moving Average - ARIMA), có thể được xây dựng nhanh chóng nhờ phương pháp Box – Jenkins. Họ mô hình ARIMA có tính linh hoạt tuyệt vời để trình bày các chuỗi thời gian khác nhau. Tuy nhiên, nó có giới hạn do giả định về độ tuyến tính của chuỗi thời gian.
+
+- Một phương pháp thống kê thống trị khác và được sử dụng rộng rãi là ExponenTial Smoothing (ETS), được đề xuất vào những năm 1950. Nó thường được coi là một giải pháp thay thế cho các mô hình ARIMA. Trong khi họ ARIMA phát triển một mô hình trong đó dự đoán là tổng tuyến tính có trọng số của các quan sát trong quá khứ gần đây hoặc độ trễ, thì các dự báo do ETS tạo ra là trung bình có trọng số của các quan sát trong quá khứ, với trọng số giảm dần theo cấp số nhân với các quan sát xa hơn.
+
+- Cuộc thi **M** do giáo sư Spyros Makridakis khởi xướng. Có các cuộc thi mở khác nhau (M1 – M5) dành riêng cho việc so sánh hiệu suất của các phương pháp dự báo khác nhau. Đặc biệt, phương pháp Theta đã thành công ấn tượng trong Cuộc thi M3 và do đó được sử dụng trong Cuộc thi M4 như một tiêu chuẩn. Nó được đề xuất lần đầu tiên bởi Assimakopoulos et al. và sau đó được mở rộng sang dự báo chuỗi thời gian kinh tế vĩ mô và tài chính đa biến. Hyndman đã chứng minh phương pháp Theta được áp dụng trong Cuộc thi M3 tương đương với phương pháp làm mịn hàm mũ đơn giản với độ lệch.
+
+- Chuỗi thời gian cũng có thể có nhiều mẫu cơ bản và việc phân tích có thể tiết lộ chúng bằng cách chia chuỗi thời gian thành nhiều thành phần. Trong phần này, tôi tập trung vào phân rã STL. 
+STL là viết tắt của phân tích theo mùa-xu hướng bằng cách sử dụng LOESS ( Seasonal-Trend decomposition), trong đó LOESS là  **LOcal regrESSion**, được đề xuất bởi Robert et al.(1990) đóng góp vào một phương pháp phân rã mạnh đối với các bất thường.
+
+- Trí tuệ nhân tạo (AI) đã đạt được sự nổi bật đáng kể trong thập kỷ qua, đặc biệt là trong nhận dạng đối tượng, xử lý ngôn ngữ tự nhiên (NLP) và lái xe tự động. Mạng Nơ-ron phức hợp (CNN) đã cách mạng hóa lĩnh vực thị giác máy tính. Mạng Nơ-ron định kỳ (RNN) được hưởng lợi từ rất nhiều thành quả NLP, chẳng hạn như dịch máy và nhận dạng giọng nói. Trong lĩnh vực chuỗi thời gian, nhiều phương pháp học máy như hồi quy vectơ hỗ trợ (SVR), mạng nơ-ron, cây phân loại và hồi quy (CART), và hồi quy k -lân cận (kNN) đã được chứng minh là có thể lập mô hình và dự báo chuỗi thời gian.
+
+- Có một số cuộc thảo luận về việc so sánh hiệu suất của các phương pháp dự báo khác nhau. Ahmed và cộng sự đã thực hiện một so sánh thực nghiệm của tám mô hình học máy trong chuỗi 1045 tháng liên quan đến Cuộc thi M3, nhưng chỉ thực hiện dự báo trước một bước. Makrirdakis và cộng sự đã thực hiện một số công trình tương tự, so sánh các phương pháp thống kê và học máy, nhưng không có bất kỳ phương pháp _phân rã_ nào được đưa vào như một bước tiền xử lý. Sử dụng tập dữ liệu cuộc thi M1, Theodosieu đã so sánh phương pháp dựa trên STL mới với một số điểm chuẩn phổ biến nhưng không kết hợp STL với chúng và chỉ xem xét dự báo tối đa 18 tháng.
+
+- Vì bước tiền xử lý thường đóng một phần không thể thiếu trong các mô hình dự báo và tác động đáng kể đến kết quả, chúng tôi đề xuất tiến hành một công việc so sánh mới để xác định lợi ích của nó: (1) bằng cách khám phá sự phân rã STL khi sử dụng nó như một bước tiền xử lý cho tất cả các phương pháp; và (2) bằng cách xem xét thời gian dự báo dài.
+
+- Phần còn lại của bài này được tổ chức như sau. Trong phần tiếp theo, tôi trình bày một mô tả ngắn gọn về tất cả các mô hình liên quan và các phương pháp phân rã. Phần 3 trình bày cách tôi tổ chức và tiến hành các thực nghiệm. Trong Phần 4, tôi trình bày các kết quả so sánh và các cuộc thảo luận dựa trên các kết quả này. Phần 5 đưa ra kết luận.
+
+# Phương pháp
+
+Mặc dù có nhiều biến thể khác nhau của mỗi mô hình, chúng tôi chỉ xem xét các phiên bản ban đầu của mỗi mô hình trong các thử nghiệm của mình. Phần này dựa theo các Cuộc thi M3 và M4, tôi đã giữ nguyên sáu phương pháp tiêu chuẩn được sử dụng trong hai cuộc thi này bởi nhà tổ chức.
+
+## Tiêu chuẩn hiện có trong Cuộc thi M4
+
+Dưới đây là danh sách mô tả các điểm chuẩn được sử dụng trong Cuộc thi M4.
+
+-	**Naive 1.** giả định các giá trị trong tương lai giống hệt với lần quan sát cuối cùng.
+-	**Naive S.** giả định các giá trị trong tương lai giống với các giá trị trong _kỳ_ đã biết gần đây nhất, trong trường hợp của chúng tôi, là 12 tháng.
+-	**Naive 2.** tương tự như Naive 1, ngoại trừ dữ liệu được điều chỉnh theo mùa bằng cách phân rã nhân thông thường nếu được thử nghiệm theo mùa. Chúng tôi đã thực hiện kiểm tra tự tương quan 90% ở độ trễ 12 cho mỗi chuỗi.
+-	Làm trơn theo cấp số nhân đơn giản (**Simple Exponential Smoothing** - SES). SES dự báo các giá trị trong tương lai dưới dạng giá trị trung bình có trọng số giảm dần theo cấp số nhân của các quan sát trong quá khứ.
+-	**Holt.** Phương pháp xu hướng tuyến tính của Holt mở rộng SES cho dữ liệu có xu hướng.
+-	**Damped.** Mô hình giảm chấn làm giảm xu hướng trong phương pháp của Holt.
+
+## Phân rã thông thường và phân rã STL
+
+Ở đây, chúng tôi giới thiệu hai phương pháp phân rã thường được sử dụng.
+
+### Phân rã thông thường
+
+Thuật toán phân rã cổ điển nhân số thông thường cho một chuỗi có chu kỳ theo mùa _m_ có bốn bước:
+
+1.	Tính thành phần xu hướng $\hat{T_t}$ bằng phương pháp trung bình động đơn giản.
+1.	Triệt tiêu xu hướng: $y_t/\hat{T_t}$ .
+1.	Tính thành phần theo mùa $\hat{S_t}$ bằng cách lấy trung bình các giá trị mùa tương ứng và sau đó điều chỉnh để đảm bảo rằng chúng cộng với _m_ .
+1.	Tính thành phần phần dư $\hat{R_t}$:  $\hat{R_t} = y_t/(\hat{T_t}\hat{S_t})$
+
+### Phân rã STL
+
+Phân rã STL bao gồm hai thủ tục đệ quy: một vòng lặp bên trong và một vòng lặp bên ngoài. Vòng bên trong phù hợp với xu hướng và tính toán thành phần theo mùa. Mỗi vòng lặp bên trong bao gồm tổng cộng sáu bước:
+
+1.	**Detrend.** Tính chuỗi detrend $y_v - T_v^{(k)}$. Đối với giá trị đầu tiên, $T_v^{(0)} = 0$.
+1.	Cycle-Subseries Smoothing. Sử dụng LOESS để làm trơn các nhóm con giá trị tại mỗi vị trí của chu kỳ theo mùa. Kết quả được đánh dấu là $C_v^{(k+1)}$ .
+1.	Low-Pass Filtering of Smoothed Cycle-Subseries. Quy trình này bao gồm hai bộ lọc MA và làm trơn LOESS. Kết quả được đánh dấu là $L_v^{(k+1)}$ .
+1.	Detrending of Smoothed Cycle-Subseries. $S_v^{(k+1)} = C_v^{(k+1)} - L_v^{(k+1)}$.
+5.	Deseasonalizing. $y_v -S_v^{(k+1)}$ .
+6.	Trend Smoothing. Sử dụng LOESS để làm mịn chuỗi không mùa vụ để có được thành phần xu hướng của chuỗi này $T_v^{(k+1)}$ .
+
+Nếu phát hiện bất thường nào, một vòng lặp bên ngoài sẽ được áp dụng và thay thế LOESS ở bước thứ hai và thứ sáu của vòng lặp bên trong bằng LOESS.
+
+## ARIMA, ETS và Theta
+
+-	**ARIMA.** Mô hình ARIMA giả định các giá trị trong tương lai là sự kết hợp tuyến tính của các giá trị trong quá khứ và mẫu ngẫu nhiên, đóng góp vào các thành phần AR và MA, tương ứng. SARIMA (ARIMA theo mùa) là một phần mở rộng của ARIMA hỗ trợ dữ liệu chuỗi thời gian với thành phần theo mùa rõ ràng. Sau khi phân tách STL được áp dụng, các mô hình SARIMA biến đổi thành các mô hình ARIMA thông thường khi STL xử lý phần theo mùa.
+
+-	**ETS.** Mô hình ETS là một họ các mô hình chuỗi thời gian với mô hình không gian trạng thái cơ bản bao gồm nhiều cấp thành phần, thành phần xu hướng (T), thành phần theo mùa (S) và thành phần sai số (E). Các dự báo được tạo ra bằng cách sử dụng phương pháp làm trơn hàm mũ là giá trị trung bình có trọng số của các quan sát trong quá khứ, với trọng số giảm dần theo cấp số nhân với các quan sát xa hơn. Sau khi ghép STL trên mô hình ETS, mô hình ETS đầy đủ suy biến thành phương pháp của Holt vì phương trình theo mùa được xử lý bởi STL.
+
+-	**Phương pháp Theta.** được đề xuất ban đầu vào năm 2000 bởi Assimakopoulos et al., hoạt động đặc biệt xuất sắc trong Cuộc thi M3 và được sử dụng làm tiêu chuẩn trong Cuộc thi M4. Phương pháp Theta dựa trên khái niệm điều chỉnh độ cong cục bộ của chuỗi thời gian thông qua hệ số $\theta$ , được áp dụng trực tiếp cho sai phân bậc hai của dữ liệu. Hyndman đã chứng minh rằng dự báo h chu kỳ tiếp thu được bằng phương pháp Theta tương đương với SES có độ lệch phụ thuộc vào giá trị tham số làm mịn của SES, số kỳ dự báo h và dữ liệu.
+
+## Phương pháp học máy
+
+Để áp dụng các phương pháp học máy thực hiện trong các nhiệm vụ dự báo chuỗi thời gian, sử dụng chiến lược nhúng để chuyển nhiệm vụ này thành vấn đề học tập có giám sát. Sau đây giới thiệu ngắn gọn các phương pháp học máy được sử dụng trong thử nghiệm này.
+
+-	**k-NN.** là một phương pháp phi tham số được sử dụng để phân loại và hồi quy. Trong cả hai trường hợp, đầu vào bao gồm k ví dụ huấn luyện gần nhất trong không gian đặc trưng.
+Trong hồi quy k -NN, đầu ra là giá trị thuộc tính cho đối tượng. Giá trị này là giá trị trung bình của k lân cận gần nhất dựa trên khoảng cách Euclidian.
+
+-	**SVR.** Support Vector Machine (SVM) là một phương pháp thành công cố gắng tìm một siêu phẳng tách biệt để tối đa hóa lề giữa hai lớp, trong khi SVR tìm kiếm một siêu phẳng để giảm thiểu lề giữa các vectơ hỗ trợ và siêu phẳng.
+
+-	**CART.** là một trong những phương pháp học máy được sử dụng phổ biến nhất và có thể được sử dụng để phân loại và hồi quy. CART phân đôi từng tính năng một cách đệ quy và chia không gian đầu vào thành nhiều ô. CART tính toán các phân phối xác suất của dự đoán tương ứng trong đó.
+
+-	**RF.** là một thuật toán học tập hợp dựa trên Cây quyết định. Tương tự như CART, Rừng Ngẫu nhiên có thể được sử dụng cho cả phân loại và hồi quy. Nó hoạt động bằng cách xây dựng nhiều cây quyết định tại thời điểm đào tạo và tính toán các dự đoán trung bình từ các cây riêng lẻ.
+
+- **GP.** là một tổng quát của phân phối xác suất Gaussian. Nó sử dụng để đo tính đồng nhất giữa các điểm như một hàm nhân để dự đoán giá trị của một điểm chưa biết từ dữ liệu huấn luyện đầu vào. Kết quả dự đoán của nó chứa giá trị của điểm và thông tin về độ không đảm bảo, tức là phân bố Gaussian một chiều của nó.
+
+## Phương pháp học sâu
+
+Đối với khả năng ghi nhớ giá trị lâu dài của RNNs đầy hứa hẹn, chúng tôi quyết định thử nghiệm mô hình học sâu. Ở đây, chúng tôi trình bày hai cấu trúc của RNN được thực hiện trong thử nghiệm của chúng tôi. Cái đầu tiên là CNNs nổi tiếng được xếp chồng lên nhau với các ô Bộ nhớ Ngắn hạn Dài (LSTM), và cái còn lại là cấu trúc ConvLSTM do Xingjian Shi et al đề xuất. trong NeurIPS 2015.
+
+-	CNN-LSTM. Chúng tôi sử dụng CNN 1D để xử lý chuỗi thời gian đơn biến. Nó có một lớp phức hợp ẩn lặp lại trên chuỗi 1D và theo sau một lớp tổng hợp để trích xuất các tính năng nổi bật nhất, sau đó được giải thích bởi một lớp được kết nối đầy đủ. Sau đó, chúng tôi xếp chồng nó với một số lớp LSTM, đây là một mô hình RNN được sử dụng rộng rãi, cung cấp giải pháp cho vấn đề gradient biến mất cho RNN. Nó được đề xuất bởi Sepp Hochreiter et al. vào năm 1997.
+
+- Convolutional LSTM. ConvLSTM là một RNN có cấu trúc tích hợp trong cả chuyển đổi đầu vào trạng thái và trạng thái sang trạng thái. Nó xác định trạng thái tương lai của một ô nhất định trong lưới bằng đầu vào của các hàng xóm cục bộ và trạng thái trong quá khứ của nó. Điều này đạt được bằng cách sử dụng toán tử tích chập trong các chuyển đổi trạng thái sang trạng thái và đầu vào sang trạng thái. Thay vì đọc và trích xuất các tính năng bằng CNN và sau đó giải thích chúng bằng LSTM, ConvLSTM đọc và giải thích chúng cùng một lúc.
+
+# Thực nghiệm
+
+Phần này trình bày cách chúng tôi tổ chức và thực hiện thử nghiệm của mình.
+
+## Dữ liệu
+
+
+
+## Các bước thực hiện với các phương pháp học máy và học sâu
+
+### Tiền xử lý dữ liệu (Preprocessing)
+
+Trong thử nghiệm của chúng tôi, ba kỹ thuật tiền xử lý đã được thực hiện trên tất cả các chuỗi:
+
+1. **Deseasonalizing**: Kiểm tra tự tương quan 90% ở độ trễ 12 được thực hiện để quyết định xem chuỗi có theo mùa hay không. Chúng tôi thực hiện phân rã thông thường hoặc phân rã STL nếu chuỗi theo mùa và trích xuất phần theo mùa.
+
+1. **Detrending**: Thông thường để loại bỏ xu hướng người ta thường lấy sai phân bậc một. Trong phần này chúng tôi tính tốc độ tăng trưởng.
+
+1. **Scaling**: Một cách chuẩn hóa được áp dụng, bằng cách trừ giá trị trung bình rồi chia cho độ lệch chuẩn.
+
+### Thiết lập mô hình học tập có giám sát
+
+Bài toán dự đoán chuỗi thời gian có thể được chuyển đổi thành một mô hình học tập có giám sát mà phương pháp học máy và học sâu có thể thực hiện. Một cách tiếp cận thường được sử dụng là xây dựng tập huấn luyện bằng cách lấy trễ (lagging) và xếp chồng (stacking) chuỗi lịch sử nhiều lần, thường được gọi là kỹ thuật nhúng khi thực hiện trên R.
+
+### Hậu xử lý dữ liệu ( Post-Processing)
+
+Phần xử lý sau bao gồm các bước đảo ngược của ba bước tiền xử lý:
+
+1. **Rescaling**: Đảo ngược chuẩn hóa dữ liệu.
+1. **Retrending**: Cộng dồn đưa xu hướng trở lại.
+1. **Reseasonalizing**: Thêm các thành phần theo mùa vào dự báo.
+
+
+## Các bước thực hiện với phương pháp thống kê
+
+Phương pháp thống kê không yêu cầu tiền xử lý hoặc hậu xử lý như yêu cầu của phương pháp học máy và học sâu. Tuy nhiên, các bước _deseasonalization_ và _reseasonalization_ là cần thiết cho các phương pháp dựa trên STL.
+
+Trong thử nghiệm của chúng tôi, chúng tôi đã thực hiện phân rã STL và xây dựng Các mô hình ARIMA, ETS và Theta dựa trên chuỗi điều chỉnh theo mùa để tính toán các dự báo điểm. Nó bao gồm ba thủ tục sau:
+
+1.	Deseasonalizing. Tính toán chuỗi mùa vụ bằng cách trích xuất thành phần theo mùa được tính bằng cách phân hủy STL.
+
+2.	Dự báo điểm. Xây dựng các mô hình ARIMA, ETS và Theta trên dữ liệu được điều chỉnh theo mùa và tính toán các giá trị dự báo.
+
+3.	Reseasonalizing. Tích hợp thành phần thời vụ trở lại để tính toán kết quả dự báo cuối cùng.
+
+Tác động của việc áp dụng phân tích STL trên các phương pháp thống kê là nó bỏ các phương pháp xử lý tính thời vụ nội tại của các phương pháp thống kê này.
+
+## Lựa chọn và điều chỉnh tham số
+
+## Đánh giá mô hình
+
+
+
