@@ -71,11 +71,11 @@ Thuật toán phân rã cổ điển nhân số thông thường cho một chu�
 Phân rã STL bao gồm hai thủ tục đệ quy: một vòng lặp bên trong và một vòng lặp bên ngoài. Vòng bên trong phù hợp với xu hướng và tính toán thành phần theo mùa. Mỗi vòng lặp bên trong bao gồm tổng cộng sáu bước:
 
 1.	**Detrend.** Tính chuỗi detrend $y_v - T_v^{(k)}$. Đối với giá trị đầu tiên, $T_v^{(0)} = 0$.
-1.	Cycle-Subseries Smoothing. Sử dụng LOESS để làm trơn các nhóm con giá trị tại mỗi vị trí của chu kỳ theo mùa. Kết quả được đánh dấu là $C_v^{(k+1)}$ .
-1.	Low-Pass Filtering of Smoothed Cycle-Subseries. Quy trình này bao gồm hai bộ lọc MA và làm trơn LOESS. Kết quả được đánh dấu là $L_v^{(k+1)}$ .
-1.	Detrending of Smoothed Cycle-Subseries. $S_v^{(k+1)} = C_v^{(k+1)} - L_v^{(k+1)}$.
-5.	Deseasonalizing. $y_v -S_v^{(k+1)}$ .
-6.	Trend Smoothing. Sử dụng LOESS để làm mịn chuỗi không mùa vụ để có được thành phần xu hướng của chuỗi này $T_v^{(k+1)}$ .
+1.	**Cycle-Subseries Smoothing.** Sử dụng LOESS để làm trơn các nhóm con giá trị tại mỗi vị trí của chu kỳ theo mùa. Kết quả được đánh dấu là $C_v^{(k+1)}$ .
+1.	**Low-Pass Filtering of Smoothed Cycle-Subseries.** Quy trình này bao gồm hai bộ lọc MA và làm trơn LOESS. Kết quả được đánh dấu là $L_v^{(k+1)}$ .
+1.	**Detrending of Smoothed Cycle-Subseries.** $S_v^{(k+1)} = C_v^{(k+1)} - L_v^{(k+1)}$.
+5.	**Deseasonalizing.** $y_v -S_v^{(k+1)}$ .
+6.	**Trend Smoothing.** Sử dụng LOESS để làm mịn chuỗi không mùa vụ để có được thành phần xu hướng của chuỗi này $T_v^{(k+1)}$ .
 
 Nếu phát hiện bất thường nào, một vòng lặp bên ngoài sẽ được áp dụng và thay thế LOESS ở bước thứ hai và thứ sáu của vòng lặp bên trong bằng LOESS.
 

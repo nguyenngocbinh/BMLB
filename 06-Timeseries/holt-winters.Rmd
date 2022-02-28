@@ -1,0 +1,69 @@
+---
+title: "So sánh Holt-Winters với ExponenTial Smoothing"
+author: "Nguyễn Ngọc Bình"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output: 
+  html_document:
+    code_download: false
+    code_folding: show
+    number_sections: yes
+    theme: "default"
+    toc: TRUE
+    toc_float: TRUE
+    dev: 'svg'
+---
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Phương pháp ExponenTial Smoothing
+
+**ExponenTial Smoothing** (Simple ExponenTial Smoothing (_SES_) - phương pháp san mũ) là phương pháp đơn giản nhất trong số các phương pháp làm mịn theo cấp số nhân được gọi là làm trơn đơn giản theo cấp số nhân (SES). Phương pháp này thích hợp để dự báo dữ liệu không có xu hướng rõ ràng hoặc mô hình theo mùa. 
+Sử dụng phương pháp trung bình giá trị dự báo bằng trung bình có trọng số của các giá trị trong quá khứ:
+
+
+$$ \hat{y}_{T+h|T} = \frac1T \sum_{t=1}^T y_t (1)$$
+
+Theo công thức (1) các giá trị trong quá khứ có trọng số như nhau và bằng 1. Một phiên bản cải tiến khác, có thể gắn các trọng số lớn hơn vào các quan sát gần đây hơn và trọng số nhỏ hơn với các quan sát từ quá khứ xa hơn. Đây chính xác là khái niệm đằng sau việc làm mịn theo cấp số nhân đơn giản. Các dự báo được tính toán bằng cách sử dụng trung bình có trọng số, trong đó trọng số giảm theo cấp số nhân khi các quan sát đến từ xa hơn trong quá khứ - trọng số nhỏ nhất được gắn với các quan sát xa nhất:
+
+$$ \hat{y}_{T+1|T} = \alpha y_T + \alpha(1-\alpha) y_{T-1} + \alpha(1-\alpha)^2 y_{T-2}+ ... (2) $$
+Trong đó, $ 0 \le \alpha \le 1$ là các tham số làm mịn.
+
+- Biến đổi công thức (2) dưới dạng trung bình có trọng số:
+
+$$ \hat{y}_{T+1|t} = \alpha y_T + (1-\alpha) \hat{y}_{T|T-1}$$
+
+# Phương pháp Holt-Winters là gì?
+
+Phương pháp Holt-Winters còn được gọi là làm trơn ba hàm mũ - là một phương pháp cực kỳ phổ biến và tương đối đơn giản để dự báo chuỗi thời gian. 
+
+Phương pháp này phát triển dự trên ý tưởng của phương pháp san mũ ExponenTial Smoothing (ETS). Trong đó, chuỗi thời gian được chia ra làm 3 thành phần: giá trịtrung bình (mean), độ dốc (trend) theo thời gian và tính thời vụ (hoặc chu kỳ).
+
+# Giải thích công thức làm mịn ba hàm mũ của Holt-Winters
+
+Phương pháp Holt-Winters sử dụng làm trơn theo cấp số nhân để mã hóa nhiều giá trị trong quá khứ và sử dụng chúng để dự đoán các giá trị cho hiện tại và tương lai. Làm trơn theo cấp số nhân đề cập đến việc sử dụng đường trung bình động có trọng số theo cấp số nhân (EWMA) để làm _mượt_ một chuỗi thời gian. Nếu bạn có một số chuỗi thời gian $x_t$ , bạn có thể xác định một chuỗi thời gian mới $s_t$ đó là một phiên bản làm mịn của $x_t$ . 
+
+s t = α x t + (1− α ) s t −1
+Vào cuối những năm 1950, Charles Holt đã nhận ra vấn đề với mô hình EWMA đơn giản với chuỗi thời gian theo xu hướng. Ông đã sửa đổi mô hình làm trơn hàm mũ đơn giản để giải thích cho xu hướng tuyến tính. Điều này được gọi là làm mịn theo cấp số nhân của Holt. Mô hình này phức tạp hơn một chút. Nó bao gồm hai EWMA: một cho các giá trị được làm mịn của xt và một cho độ dốc của nó . Mức độ điều khoản và xu hướng cũng được sử dụng.
+s t = α x t + (1− α ) ( s t −1+ b t −1)
+b t = β ( s t - s t - 1) + ( 1− β ) b t −1
+Lưu ý rằng các giá trị được làm mịn tốt hơn nhiều như thế nào khi tuân theo chuỗi thời gian gốc với việc làm mịn theo cấp số nhân kép. Điều này có nghĩa là bạn sẽ nhận được nhiều dự báo tốt hơn.  Để dự báo với mô hình này, bạn phải thực hiện một chút điều chỉnh. Bởi vì có một thuật ngữ khác cho độ dốc, bạn sẽ phải xem xét điều đó trong dự báo. Giả sử bạn đang cố gắng dự báo giá trị theo m bước thời gian trong tương lai. Công thức cho dự báo trước m , F t + m , là:
+F t + m = s t + mb t
+Lưu ý về cơ bản nó là công thức cho một dòng. Điều gì sẽ xảy ra nếu chuỗi thời gian của bạn không có xu hướng tuyến tính mà thay vào đó là một số kiểu thời vụ? Đối với điều này, bạn sẽ cần một EWMA khác. Học sinh của Holt, Peter Winters, đã mở rộng mô hình của giáo viên của mình bằng cách giới thiệu một thuật ngữ bổ sung cho yếu tố thời vụ. Lưu ý rằng có một biến L khác , phụ thuộc vào khoảng thời gian của tính thời vụ và phải được biết trước.  Ba khía cạnh của hành vi chuỗi thời gian — giá trị, xu hướng và tính thời vụ — được biểu thị dưới dạng ba loại làm mịn theo cấp số nhân, vì vậy Holt-Winters được gọi là làm trơn ba cấp số nhân. Mô hình dự đoán giá trị hiện tại hoặc tương lai bằng cách tính toán các tác động tổng hợp của ba ảnh hưởng này. Mô hình yêu cầu một số tham số: một tham số cho mỗi lần làm mịn (ɑ, β, γ), độ dài của một mùa và số chu kỳ trong một mùa.
+Ví dụ về dự báo Holt-Winters
+Phần khó nhất của dự báo Holt-Winters là hiểu cách hoạt động của mô hình và chọn các thông số tốt. Để giải quyết vấn đề đầu tiên, chúng ta sẽ xem qua một mô hình ví dụ bằng cách thực hiện Holt-Winters “bằng tay”. Cách thông thường để giải thích Holt-Winters là hiển thị một loạt các phương trình phức tạp với các chữ cái Hy Lạp và ký tự con. Chúng tôi sẽ bỏ qua phép toán và chỉ ra cách thức hoạt động của nó, đơn giản hơn rất nhiều. Chúng tôi sẽ làm việc với chuỗi thời gian này:
+ Đây là mã R tôi đã sử dụng để tạo mã đó.  Mô hình là rõ ràng: âm mưu lặp lại các giá trị [0, 1, 0, 0, 0]. Bạn có thể cho tôi biết năm giá trị tiếp theo sẽ là gì không? Tất nhiên bạn có thể, bởi vì tôi vừa nói với bạn! Chúng là [0, 1, 0, 0, 0]. Sẽ như thế nào nếu chúng ta tạo các giá trị so với giá trị trung bình của năm điểm đó? Trung bình của (0 + 1 + 0 + 0 + 0) / 5 là 0,2, chúng tôi sẽ vẽ biểu đồ dưới dạng một đường ngang:  Holt-Winters có một thành phần xu hướng. Nếu chúng ta đặt tham số của nó bằng 0, Holt-Winters bỏ qua xu hướng (độ dốc), do đó mô hình đơn giản hóa. Bây giờ, nó chỉ là một loạt các giá trị so với giá trị trung bình. Trong biểu đồ của chúng tôi, các giá trị liên quan đến 0,2 là [-0,2, 0,8, -0,2, -0,2, -0,2]. Nếu chúng tôi làm Holt-Winters mà không có xu hướng, thì đó là kiểu mô hình chúng tôi sẽ xây dựng. Đây là những gì chức năng Holt-Winters trong R mang lại, với một số chú thích màu xanh lam mà tôi đã thêm theo cách thủ công:  Dự báo với xu hướng chỉ là một cải tiến của điều này. Thay vì sử dụng giá trị trung bình cố định làm nền tảng, bạn phải kết hợp độ dốc của đường. Đây là một mô hình có xu hướng: 
+Tính thời vụ trong dự báo là gì?
+Tính thời vụ đề cập đến một mô hình tuần hoàn hoặc một khoảng thời gian cố định có chứa sự lặp lại đầy đủ. Tuy nhiên, tính thời vụ có thể gây nhầm lẫn. Bạn có thể nghĩ rằng dữ liệu của mình lặp lại hàng ngày (có cao điểm vào lúc 2 giờ chiều mỗi ngày), nhưng nếu cuối tuần có hành vi khác (không có cao điểm lúc 2 giờ chiều vào Chủ nhật) thì mùa của bạn thực sự là một tuần chứ không phải một ngày. Trong mùa giải, có những khoảng thời gian, đó là mức độ chi tiết của dự đoán. Nếu bạn muốn lập mô hình giá trị cho mỗi giờ hàng ngày trong vòng một tuần, thì mùa của bạn dài 168 giờ và chu kỳ của bạn là 1 giờ. Bạn đã biết, theo định nghĩa, chuỗi ví dụ lặp lại sau mỗi năm điểm, tức là, mùa là năm giai đoạn. Điều gì sẽ xảy ra nếu bạn không biết mùa là gì cho một chuỗi thời gian? Làm thế nào bạn có thể tìm ra nó? Hậu quả của việc làm sai là gì? Thời vụ thích hợp là yếu tố quyết định đối với dự báo của Holt-Winters. Để minh họa điều này, hãy xem điều gì sẽ xảy ra khi bạn sử dụng một mùa gồm sáu giai đoạn, một mùa lớn hơn một mùa thực tế là năm giai đoạn:  Dự báo, là đường màu đỏ trong biểu đồ, trở nên kém chính xác hơn và biến thành rác. Để có được kết quả tốt, bạn cần cung cấp cho mô hình các thông số tốt. Đây là thách thức thứ hai với Holt-Winters dự báo.
+Xác định các tham số tối ưu cho các phép tính công thức Holt-Winters
+Chọn thời vụ là một vấn đề khó khăn. Dự báo mục đích chung là khó vì nó phải sẵn sàng để sử dụng trên bất kỳ tập dữ liệu nào, có thể có bất kỳ sự kết hợp nào giữa các giá trị, xu hướng và tính thời vụ. Nó thậm chí có thể không có một số thành phần đó. Đây thường là những ẩn số trừ khi bạn đang kiểm tra dữ liệu theo cách thủ công và tùy chỉnh mô hình cho nó. Tại SolarWinds , chúng tôi cần chức năng dự báo hoạt động mà không cần bất kỳ giả định hoặc kiến thức nào về đặc điểm của dữ liệu. Có nhiều cách tiếp cận khác nhau cho vấn đề này: máy học, phân tích Fourier, v.v. Giải pháp của chúng tôi cho vấn đề này là thử nhiều cách kết hợp khác nhau, sử dụng các kỹ thuật như tối ưu hóa Nelder -Mead để chọn ra người chiến thắng. Điều này tận dụng lợi thế của việc máy tính xử lý nhanh những việc đơn giản, vì vậy chúng tôi hình thành vấn đề một cách đơn giản: tôi có thể định lượng mức độ tốt của một dự báo không và tôi có thể so sánh các dự báo không? Sau đó, chúng tôi thử các kết hợp khác nhau của các tham số và xem những gì giành chiến thắng. Hãy định lượng mức độ tốt của một dự báo. Dự báo cuối cùng là tệ, nhưng tệ đến mức nào? Cách thông thường để định lượng độ chính xác của dự báo là tính toán sự khác biệt giữa giá trị dự đoán và giá trị thực tế. Các mũi tên màu xanh lam trong biểu đồ sau biểu thị mức độ chênh lệch của dự đoán so với giá trị thực tế.  Để định lượng độ chính xác tổng thể, bạn có thể kết hợp những khác biệt này thành một giá trị duy nhất bằng cách lấy giá trị trung bình hoặc tổng bình phương. Kết quả là một giá trị nhỏ hơn nếu dự báo tốt hơn và lớn hơn nếu dự báo kém hơn. Điều này cung cấp cho bạn một cách tốt để so sánh kết quả dự báo. Mã dự báo của chúng tôi thử rất nhiều kết hợp (nhiều!) Với các tham số khác nhau và chọn những tham số tạo ra điểm lỗi kết hợp thấp nhất. Để minh họa điều này, đây là một loạt các dự báo trên cùng một chuỗi thời gian, thử các tần số khác nhau. 
+Phương án có tính thời vụ phù hợp (năm khoảng thời gian mỗi mùa) dễ dàng nhận ra bằng mắt thường vì sự khác biệt giữa dữ liệu và dự báo là nhỏ. Đây là một ví dụ trực quan về những gì dự báo của chúng tôi thực hiện thông qua tối ưu hóa. Nó cũng tối ưu hóa các thông số khác, chẳng hạn như xu hướng.
+Phương pháp dự báo Holt-Winters để phát hiện sự bất thường của cơ sở dữ liệu
+Dự báo Holt-Winters có sức mạnh đáng ngạc nhiên mặc dù nó đơn giản. Nó có thể xử lý rất nhiều mẫu phức tạp theo mùa bằng cách đơn giản là tìm giá trị trung tâm, sau đó thêm vào các hiệu ứng của độ dốc và tính thời vụ. Bí quyết là cung cấp cho nó các thông số phù hợp. Đây là một vấn đề khó, nhưng chúng tôi nhận thấy rằng tối ưu hóa số có thể chọn các giá trị tốt một cách nhanh chóng. Giải pháp này dễ xây dựng và dễ hiểu, có giá trị cho các mục đích của chúng tôi. Nếu bạn muốn khám phá thêm, đây là một số tài nguyên khác:
+•	https://www.otexts.org/fpp/7/5
+•	https://grisha.org/blog/2016/01/29/triple-exponential-smoothing-forecasting/
+•	http://www.itl.nist.gov/div898/handbook/pmc/section4/pmc435.htm
+SolarWinds Database Performance Monitor cung cấp khả năng phát hiện bất thường truy vấn dựa trên các thuật toán thống kê nâng cao như dự báo Holt-Winters được thiết kế để tính đến một số loại thời vụ để tránh dương tính giả tốt hơn. Bắt đầu dùng thử DPM miễn phí 14 ngày để xem tính năng này hoạt động.
+
