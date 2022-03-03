@@ -1,0 +1,427 @@
+---
+title: "Dự báo nhiều chuỗi thời gian (phần 2)"
+author: "Nguyễn Ngọc Bình"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output: 
+  html_document:
+    code_download: false
+    code_folding: show
+    number_sections: yes
+    theme: "default"
+    toc: TRUE
+    toc_float: TRUE
+    dev: 'svg'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Phân tích chuỗi thời gian là một phương pháp được sử dụng rộng rãi trong kinh doanh để có được những thông tin hữu ích như dự báo nhu cầu, dự báo giá cổ phiếu, giá tiền mã hóa và các phân tích dự báo khác.
+
+Trong phần này, tôi sẽ giải thích cách dự báo hàng nghìn chuỗi (1000+) sử dụng mô hình Thống kê / Máy học / Học sâu để dự đoán giá trị trong tương lai) & phân loại mô hình nhu cầu (phân loại sản phẩm dựa trên số lượng và thời gian).
+
+Chuỗi phân tích này bao gồm 5 phần:
+
+- Phần 1: Làm sạch dữ liệu và tạo features đơn giản.
+
+- Phần 2: Mô hình Chuỗi thời gian với phương pháp thống kê (ARIMA, ETS, CROSTON, v.v.) sử dụng gói **fable** R.
+
+- Phần 3: Time Series Feature Engineering sử dụng gói **timetk** R.
+
+- Phần 4: Các mô hình Machine Learning (XGBoost, Random Forest, v.v.) & điều chỉnh Hyperparameter bằng cách sử dụng các gói **modeltime** & **tidymodels** R.
+
+- Phần 5: Mô hình Deeplearning (NBeats & DeepAR) & điều chỉnh Hyperparameter bằng cách sử dụng các gói **modeltime**, **modeltime.gluonts** R.
+
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("nguyenngocbinh/vndirect")
+pacman::p_load(knitr,
+               vndirect,
+               tidyverse,
+               magrittr,
+               hrbrthemes,
+               # Tidy Temporal Data Frames and Tools
+               tsibble,
+               # Feature Extraction and Statistics for Time Series
+               feasts,
+               fable,
+               fable.prophet)
+```
+
+# Dữ liệu
+
+Sử dụng dữ liệu giá cổ phiếu nguồn vndirect. Trong phần này sẽ sử dụng chuỗi số liệu của 3 cổ phiếu TCB, LPB, BCC
+
+```{r}
+# get data from vndirect source
+rawdata <- vndirect::vnd_get_list_data(c('TCB', 'LPB', 'BCC'), 1000)
+```
+
+Kiểm tra số lượng quan sát từng chuỗi
+
+```{r}
+rawdata$ticker_name %>% 
+  table() 
+```
+
+# Tiền xử lý dữ liệu
+
+Sử dụng giá đóng cửa hàng ngày để phân tích và dự báo. gói **tsibble** cho phép định dạng nhiều chuỗi trên cùng 1 bảng (tương tự như group_by trên **dplyr**). Bằng việc chọn _key_ và _index_ phù hợp ta sẽ định dạng được bảng dữ liệu gồm nhiều chuỗi thời gian
+
+```{r}
+# convert to tsibble format
+dt <- rawdata %>% 
+  # select target variable
+  rename(value = adClose) %>% 
+  # convert to tsibble format
+  as_tsibble(key = ticker_name, index = date) %>% 
+  fill_gaps()
+```
+
+Xử lý missing nếu có trong dữ liệu. Do _fable_ yêu cầu _fill_gaps_, tức là điền các khoảng thời gian thiếu vào chuỗi. Vì vậy, sẽ có nhiều ngày không có dữ liệu (ví dụ, thứ 7, chủ nhật không có giao dịch). Phần dưới sẽ điền những giá trị missing này bằng giá trị ngày gần nhất.
+
+```{r}
+fnc_na_vars <- function(x) {any(is.na(x))}
+
+na_vars <- dt %>%
+  select_if(fnc_na_vars) %>% 
+  names() 
+
+dt <- dt %>%
+  fill(all_of(na_vars), .direction = 'down')
+```
+
+Chia dữ liệu thành nhiều tập train (fable không hỗ trợ chia train, test), sau đó sử dụng chuỗi dữ liệu ban đầu để đánh giá performance của mô hình.
+
+```{r}
+# split data to cross validation
+cv_dt <- dt %>% 
+  stretch_tsibble(.init = 370, .step = 100) 
+```
+
+# Modelling
+
+## Các loại mô hình
+
+Các loại mô hình được tham khảo từ 
+[Forecasting: Principles and Practice](https://otexts.com/fpp3/index.html)
+
+### Naive
+
+Mô hình Naive gán tất cả các giá trị trong tương lai bằng giá trị quan sát cuối cùng.
+
+### Seasonal Naive
+
+Mô hình Naive theo mùa được sử dụng cho dữ liệu theo mùa. Trong tình huống này, mỗi giá trị tương lai bằng giá trị cuối cùng của cùng một mùa.
+
+### Drift
+
+Mô hình drift là một biến thể của mô hình **Naive**, cho phép dự báo tăng giảm theo thời gian.
+
+### Simple Exponential Smooth (SES)
+
+Mô hình trơn theo cấp số nhân đơn giản được sử dụng khi không thể xác định được xu hướng rõ ràng hoặc mô hình theo mùa.
+
+\begin{align*}
+  \text{Forecast equation}  && \hat{y}_{t+h|t} & = \ell_{t}\\
+  \text{Smoothing equation} && \ell_{t}        & = \alpha y_{t} + (1 - \alpha)\ell_{t-1},
+\end{align*}
+
+  - Trong đó: 
+  
+    - $\ell_{t}$: giá trị làm trơn tại thời gian t
+    - h: thời gian dự báo ngoài mẫu
+    - $\alpha$: tham số làm trơn $0\le\alpha\le1$
+
+### Holt’s Linear
+
+Mô hình Holt’s Linear là một phiên bản mở rộng của SES cho phép dự báo theo xu hướng.
+
+\begin{align*}
+  \text{Forecast equation}&& \hat{y}_{t+h|t} &= \ell_{t} + hb_{t} \\
+  \text{Level equation}   && \ell_{t} &= \alpha y_{t} + (1 - \alpha)(\ell_{t-1} + b_{t-1})\\
+  \text{Trend equation}   && b_{t}    &= \beta^*(\ell_{t} - \ell_{t-1}) + (1 -\beta^*)b_{t-1},
+\end{align*}
+
+- $b_t$: ước lượng xu hướng hay độ dốc tại thời điểm t
+- $\beta^*$: tham số làm trơn $ 0\le\beta^*\le1 $
+
+### Damped Holt’s Linear
+
+Là phiên bản mở rộng của Holt’s Linear. Mô hình Holt’s Linear cho ra chuỗi liên tục tăng hoặc liên tục giảm vô hạn trong tương lai vì vậy có thể dự báo quá mức (đặc biệt với chuỗi thời gian dài). Gardner & McKenzie (1985) đưa ra 1 tham số điều chỉnh xu hướng, cho phép xu hướng thay đổi theo thời gian với một tham số $\phi$. 
+
+\begin{align*}
+  \hat{y}_{t+h|t} &= \ell_{t} + (\phi+\phi^2 + \dots + \phi^{h})b_{t} \\
+  \ell_{t} &= \alpha y_{t} + (1 - \alpha)(\ell_{t-1} + \phi b_{t-1})\\
+  b_{t} &= \beta^*(\ell_{t} - \ell_{t-1}) + (1 -\beta^*)\phi b_{t-1}.
+\end{align*}
+
+- $0<\phi<1$, $\phi=1$ ~ Holt’s Linear
+
+### Forecasting with Decomposition
+
+Mô hình này được sử dụng để phân rã chuỗi thời gian theo mùa và theo xu hướng bằng cách sử dụng phương pháp lowess (Seasonal and Trend decomposition using Loess - STL). Sau đó, sử dụng ETS để dự báo dữ liệu được điều chỉnh theo mùa, và thành phần theo mùa có thể được thêm vào dữ liệu dự báo. 
+
+- Dạng mô hình cộng:
+
+$$y_{t} = S_{t} + T_{t} + R_t$$
+
+- Dạng mô hình nhân:
+
+
+$$y_{t} = S_{t} \times T_{t} \times R_t$$
+
+### ARIMA
+
+Mô hình ARIMA cung cấp một cách tiếp cận khác để dự báo chuỗi thời gian. Các mô hình ARIMA và ETS là hai cách tiếp cận được sử dụng rộng rãi nhất để dự báo chuỗi thời gian. Trong khi các mô hình ETS dựa trên đặc điểm về xu hướng và tính thời vụ trong dữ liệu, thì các mô hình ARIMA hướng tới tự tương quan trong dữ liệu. Ở đây, chúng tôi sẽ chọn mô hình ARIMA tự động bằng cách sử dụng AICC tối thiểu.
+
+### Timeseries Regression
+
+Mô hình hồi quy, cho phép sử dụng biến độc lập khác.
+
+$$
+\begin{equation}
+  y_t = \beta_{0} + \beta_{1} x_{1,t} + \beta_{2} x_{2,t} + \cdots + \beta_{k} x_{k,t} + \varepsilon_t,
+  \tag{7.1}
+\end{equation}
+$$
+
+### Dynamic Harmonic Regression
+
+Các phiên bản theo mùa của mô hình ARIMA và ETS được thiết kế cho các khoảng thời gian ngắn, chẳng hạn như 12 cho dữ liệu hàng tháng hoặc 4 cho dữ liệu hàng quý. Mô hình ETS() giới hạn thời vụ là khoảng thời gian tối đa là 24 để cho phép dữ liệu hàng giờ nhưng không cho phép dữ liệu có khoảng thời gian theo mùa lớn hơn. Hàm ARIMA () sẽ cho phép khoảng thời gian theo mùa lên đến m =350, nhưng trong thực tế, thường sẽ hết bộ nhớ bất cứ khi nào khoảng thời gian theo mùa nhiều hơn 200. Vì vậy, đối với chuỗi thời gian mà chia nhỏ đến phút hoặc giây thì 2 mô hình này không đáp ứng được. 
+
+Trong trường hợp này, sử dụng phương pháp hồi quy hài hòa trong đó mô hình theo mùa được mô hình hóa bằng cách sử dụng thuật ngữ _Fourier_ với chuỗi thời gian ngắn hạn được xử lý bằng ARMA.
+
+Đối với dữ liệu có nhiều hơn một khoảng thời gian theo mùa, có thể sử dụng Fourier với các mức khác nhau; độ mượt của mô hình theo mùa có thể được kiểm soát bởi K, bao gồm các cặp Fourier sin và cos - mô hình theo mùa mượt hơn đối với các giá trị nhỏ hơn của K. Chuỗi thời gian ngắn hạn dễ dàng được xử lý với mô hình ARMA đơn giản.
+
+### Ensemble
+
+Mô hình tổng hợp chỉ đơn giản là sử dụng một số mô hình khác nhau cùng một lúc và tính toán giá trị trung bình của các dự báo kết quả. Ví dụ: ở đây, các mô hình ARIMA, SES & Decomposition được sử dụng cùng nhau để tính toán giá trị dự báo trung bình.
+
+
+```{r}
+model_single_var_table <- cv_dt %>%
+  model(
+    ## Model 1: Naive ----
+    naive_mod = NAIVE(log(value + 1)),
+    
+    ## Model 2: Snaive ----
+    snaive_mod = SNAIVE(log(value + 1)),
+    
+    ## Model 3: Drift ----
+    drift_mod = RW(log(value + 1) ~ drift()),
+    
+    ## Model 4: SES ----
+    ses_mod = ETS(log(value + 1) ~ error("A") + trend("N") + season("N"),
+                  opt_crit = "mse"),
+    
+    ## Model 5: Holt's Linear ----
+    hl_mod = ETS(log(value + 1) ~ error("A") + trend("A") + season("N"),
+                 opt_crit = "mse"),
+    
+    ## Model 6: Damped Holt's Linear ----
+    hldamp_mod = ETS(log(value + 1) ~ error("A") + trend("Ad") + season("N"),
+                     opt_crit = "mse"),
+    
+    ## Model 7: STL decomposition with ETS ----
+    stl_ets_mod = decomposition_model(
+      STL(log(value + 1), ~ season(window = 7)),
+      ETS(season_adjust ~ season("N")),
+      NAIVE(season_week),
+      SNAIVE(season_year)
+    ),
+    
+    ## Model 8: ARIMA ----
+    arima_mod = ARIMA(log(value + 1)),
+    
+    ## Model 9: Dynamic harmonic regression ----
+    dhr_mod = ARIMA(
+      log(value + 1) ~ PDQ(0, 0, 0) + fourier(K = 3)+ lag(basicPrice) + lag(high)
+    ),
+    
+    ## Model 10: TSLM ----
+    tslm_mod = TSLM(
+      log(value + 1) ~ lag(basicPrice) + lag(high) + lag(low) + lag(nmVolume)
+    )
+    
+  ) %>%
+  ## Model 99: Ensemble Model ----
+mutate(ensemble_sm_mod = combination_ensemble(arima_mod, ses_mod, stl_ets_mod)) 
+```
+
+# Đánh giá khả năng dự báo 
+
+## Training set accuracy
+
+Do mô hình kết hợp không sử dụng cùng hàm _accuracy()_. Vì vậy, tôi viết lại hàm kết hợp các giá trị accuracy
+
+```{r}
+comb_accuracy <- function(.model){
+  train_acc_single1 <- .model %>% 
+    select(-ensemble_sm_mod) %>% # not include ensemble_sm_mod
+    accuracy()
+  
+  train_acc_single2 <- .model %>% 
+    select(ensemble_sm_mod) %>% 
+    accuracy()
+  
+  train_acc_single <- bind_rows(train_acc_single1, train_acc_single2)
+  return(train_acc_single)
+}
+```
+
+```{r}
+training_acc <- comb_accuracy(model_single_var_table) %>% 
+  select(.id, ticker_name, .model, .type, RMSE, MAE, MAPE)
+
+training_acc %>% head(15) %>% kable()
+```
+
+## TSCV accuracy
+
+Do mô hình **Dynamic Harmonic Regression** và **Timeseries Regression** không có dữ liệu trong tương lai, nên sẽ không forecast để tính accuracy
+
+```{r}
+test_acc_single1 <- model_single_var_table %>%
+  select(-ensemble_sm_mod, -dhr_mod, -tslm_mod) %>% # not include ensemble_sm_mod, dhr_mod, tslm_mod
+  forecast(h = "3 months") %>%
+  accuracy(dt)
+
+test_acc_single2 <- model_single_var_table %>%
+  select(ensemble_sm_mod) %>%
+  forecast(h = "3 months") %>%
+  accuracy(dt)
+
+test_acc_single <- test_acc_single1 %>% 
+  bind_rows(test_acc_single2) %>% 
+  select(ticker_name, .model, .type, RMSE, MAE, MAPE)
+
+
+```
+
+
+## Mô hình tốt nhất theo MAPE
+
+```{r}
+best_mod_training_acc <- training_acc %>% 
+  group_by(ticker_name, .type) %>%
+  summarise(MAPE = min(MAPE, na.rm = T)) %>%
+  inner_join(training_acc)
+```
+
+
+```{r}
+best_mod_test_acc <- test_acc_single %>%
+  group_by(ticker_name, .type) %>%
+  summarise(MAPE = min(MAPE, na.rm = T)) %>%
+  inner_join(test_acc_single)
+
+```
+
+```{r}
+best_mod_acc <- best_mod_training_acc %>% bind_rows(best_mod_test_acc) 
+
+best_mod_acc %>% kable()
+```
+
+Hơi bất ngờ khi các mô hình Naive lại có performance tốt nhất
+
+# Dự báo
+
+## Fit lại mô hình với toàn bộ chuỗi dữ liệu
+
+```{r}
+final_model_single_var_table <- dt %>%
+  model(
+    ## Model 1: Naive ----
+    naive_mod = NAIVE(log(value + 1)),
+    
+    ## Model 2: Snaive ----
+    snaive_mod = SNAIVE(log(value + 1)),
+    
+    ## Model 3: Drift ----
+    drift_mod = RW(log(value + 1) ~ drift()),
+    
+    ## Model 4: SES ----
+    ses_mod = ETS(log(value + 1) ~ error("A") + trend("N") + season("N"),
+                  opt_crit = "mse"),
+    
+    ## Model 5: Holt's Linear ----
+    hl_mod = ETS(log(value + 1) ~ error("A") + trend("A") + season("N"),
+                 opt_crit = "mse"),
+    
+    ## Model 6: Damped Holt's Linear ----
+    hldamp_mod = ETS(log(value + 1) ~ error("A") + trend("Ad") + season("N"),
+                     opt_crit = "mse"),
+    
+    ## Model 7: STL decomposition with ETS ----
+    stl_ets_mod = decomposition_model(
+      STL(log(value + 1), ~ season(window = 7)),
+      ETS(season_adjust ~ season("N")),
+      NAIVE(season_week),
+      SNAIVE(season_year)
+    ),
+    
+    ## Model 8: ARIMA ----
+    arima_mod = ARIMA(log(value + 1)),
+    
+    ## Model 9: Dynamic harmonic regression ----
+    dhr_mod = ARIMA(
+      log(value + 1) ~ PDQ(0, 0, 0) + fourier(K = 3)+ lag(basicPrice) + lag(high)
+    ),
+    
+    ## Model 10: TSLM ----
+    tslm_mod = TSLM(
+      log(value + 1) ~ lag(basicPrice) + lag(high) + lag(low) + lag(nmVolume)
+    )
+    
+  ) %>%
+  ## Model 99: Ensemble Model ----
+mutate(ensemble_sm_mod = combination_ensemble(arima_mod, ses_mod, stl_ets_mod)) 
+```
+
+
+## Dự báo 3 tháng tiếp theo
+
+```{r}
+final_fc <- final_model_single_var_table %>% 
+  select(-dhr_mod, -tslm_mod) %>% 
+  forecast(h = "3 months")
+```
+
+```{r, warning=FALSE}
+final_fc %>% 
+  filter(ticker_name =='BCC') %>% 
+  autoplot(dt)+
+  theme_ipsum()+
+  labs(title = 'BCC')
+```
+
+```{r, warning=FALSE}
+final_fc %>% 
+  filter(ticker_name =='LPB' & .model == 'snaive_mod') %>% 
+  autoplot(dt)+
+  theme_ipsum()+
+  labs(title = 'LPB')
+```
+
+```{r, warning=FALSE}
+final_fc %>% 
+  filter(ticker_name =='TCB' & .model == 'snaive_mod') %>% 
+  autoplot(dt)+
+  theme_ipsum()+
+  labs(title = 'TCB')
+```
+
+
+## Kết quả dự báo với mô hình có MAPE tốt nhất
+
+```{r}
+best_fc <- best_mod_acc %>% 
+  filter(.type == 'Test') %>% 
+  inner_join(final_fc) 
+```
+
