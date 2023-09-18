@@ -1,6 +1,6 @@
 # 01-Introduction
 
-- What's R can do?
+- What's python can do?
 
 - Installation
 
