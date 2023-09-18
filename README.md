@@ -1,11 +1,13 @@
-# Khóa học "Lectures for Data Sciences" 
-Bao gồm một loạt các chủ đề quan trọng để giúp học viên phát triển kỹ năng và kiến thức trong lĩnh vực khoa học dữ liệu và phân tích dữ liệu.
+# Quick read for Data Sciences
+Bao gồm các chủ đề quan trọng để phát triển kỹ năng và kiến thức trong lĩnh vực khoa học dữ liệu và phân tích dữ liệu.
 
 ## 01-Introduction
 - Giới thiệu về khoa học dữ liệu và vai trò của nó trong thế giới hiện đại.
 - Lý do tại sao khoa học dữ liệu là một lĩnh vực quan trọng.
 - Các nguyên tắc cơ bản và các khái niệm quan trọng trong khoa học dữ liệu.
-
+- Ngôn ngữ python
+- Ngôn ngữ R
+  
 ## 02-Data Manipulation
 - Hướng dẫn cách trích xuất dữ liệu từ các nguồn khác nhau.
 - Xử lý, biến đổi và làm sạch dữ liệu.
@@ -70,3 +72,4 @@ Bao gồm một loạt các chủ đề quan trọng để giúp học viên ph�
 - Sử dụng các thư viện như BeautifulSoup và Scrapy trong Python.
 - Xử lý dữ liệu trích xuất từ web để sử dụng trong khoa học dữ liệu.
 
+## 15-Crypto
