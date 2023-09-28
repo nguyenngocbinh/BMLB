@@ -17,7 +17,11 @@ jobs:
           tinytex: true 
           # Uncomment below and fill to pin a version
           # version: 0.9.600
-      
+
+      - name: Install R packages
+        run: |
+          Rscript -e "install.packages('rmarkdown')"
+          
       # Set up Python
       - name: Set up Python
         uses: actions/setup-python@v2
