@@ -1,0 +1,78 @@
+---
+title: "Quick read for Data Sciences"
+---
+
+>Bao gồm các chủ đề quan trọng để phát triển kỹ năng và kiến thức trong lĩnh vực khoa học dữ liệu và phân tích dữ liệu.
+
+## 01-Introduction
+- Giới thiệu về khoa học dữ liệu và vai trò của nó trong thế giới hiện đại.
+- Lý do tại sao khoa học dữ liệu là một lĩnh vực quan trọng.
+- Các nguyên tắc cơ bản và các khái niệm quan trọng trong khoa học dữ liệu.
+- Ngôn ngữ python
+- Ngôn ngữ R
+  
+## 02-Data Manipulation
+- Hướng dẫn cách trích xuất dữ liệu từ các nguồn khác nhau.
+- Xử lý, biến đổi và làm sạch dữ liệu.
+- Sử dụng các thư viện như Pandas trong Python để thao tác dữ liệu.
+
+## 03-Data Visualization
+- Phân tích và trực quan hóa dữ liệu bằng các biểu đồ và biểu đồ khác nhau.
+- Sử dụng các công cụ như Matplotlib và Seaborn để tạo đồ thị.
+- Làm thế nào để trình bày thông tin dữ liệu một cách rõ ràng và hấp dẫn.
+
+## 04-Basic Statistics
+- Các khái niệm cơ bản về thống kê, như trung bình, phương sai và độ lệch chuẩn.
+- Phân tích phân phối dữ liệu.
+- Ứng dụng các phương pháp thống kê trong khoa học dữ liệu.
+
+## 05-Regression
+- Hướng dẫn về mô hình hồi quy và các loại hồi quy khác nhau.
+- Sử dụng mô hình hồi quy để dự đoán giá trị.
+- Đánh giá hiệu suất của mô hình hồi quy.
+
+## 06-Timeseries
+- Làm thế nào để xử lý dữ liệu chuỗi thời gian.
+- Mô hình hóa và dự đoán xu hướng và mùa vụ trong dữ liệu chuỗi thời gian.
+- Sử dụng các thư viện như Time Series Analysis trong Python.
+
+## 07-Panel Data Models
+- Giới thiệu về mô hình dữ liệu bảng và ứng dụng của chúng trong khoa học dữ liệu.
+- Làm thế nào để xử lý dữ liệu bảng có cấu trúc phức tạp.
+- Sử dụng mô hình dữ liệu bảng cho các vấn đề phức tạp.
+
+## 08-Machine Learning
+- Tổng quan về học máy và các thuật toán học máy phổ biến.
+- Tiếp cận và giải quyết các vấn đề thực tế bằng học máy.
+- Đánh giá hiệu suất của các mô hình học máy.
+
+## 09-Model Deployment
+- Cách triển khai các mô hình học máy vào sản phẩm hoặc ứng dụng thực tế.
+- Giới thiệu về các nền tảng triển khai mô hình như AWS, Azure, và Google Cloud.
+- Quản lý và duy trì mô hình đã triển khai.
+
+## 10-Publication
+- Cách viết bài báo khoa học và báo cáo dự án trong lĩnh vực khoa học dữ liệu.
+- Làm thế nào để trình bày kết quả của dự án khoa học dữ liệu một cách chuyên nghiệp.
+
+## 11-Git
+- Hướng dẫn về Git và quản lý phiên bản dự án.
+- Làm thế nào để làm việc với kho lưu trữ Git và GitHub.
+- Quy trình làm việc cộng tác trong nhóm sử dụng Git.
+
+## 12-Docker
+- Giới thiệu về Docker và containerization.
+- Tạo và quản lý các container Docker cho các ứng dụng khoa học dữ liệu.
+- Triển khai ứng dụng trong các môi trường container Docker.
+
+## 13-Database
+- Cơ sở dữ liệu và các loại cơ sở dữ liệu khác nhau (SQL, NoSQL, ...)
+- Làm thế nào để truy xuất dữ liệu từ cơ sở dữ liệu.
+- Sử dụng SQL và các thao tác cơ sở dữ liệu trong khoa học dữ liệu.
+
+## 14-Web Scraping
+- Cách trích xuất dữ liệu từ các trang web bằng web scraping.
+- Sử dụng các thư viện như BeautifulSoup và Scrapy trong Python.
+- Xử lý dữ liệu trích xuất từ web để sử dụng trong khoa học dữ liệu.
+
+## 15-Crypto

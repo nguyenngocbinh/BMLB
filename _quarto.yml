@@ -1,0 +1,76 @@
+project: 
+  type: website
+  
+website: 
+  page-navigation: true
+  title: "Making sharable documents with Quarto" 
+  site-url: "https://nguyenngocbinh.github.io/bmlb" 
+  repo-url: https://github.com/nguyenngocbinh/bmlb 
+  repo-actions: [edit, issue]
+  
+  page-footer:
+    right: "This page is built with ❤️ and [Quarto](https://quarto.org/)."
+    left: "&copy; CC-By NguyenNgocBinh, 2023"
+    
+  sidebar:
+    logo: "images/b_hex.png"
+    pinned: true
+    align: center
+    tools: 
+      - icon: globe
+        href: https://nguyenngocbinh.github.io/bmlb
+        text: "nguyenngocbinh.github.io/bmlb"
+      - icon: github
+        href: https://github.com/nguyenngocbinh/bmlb
+        text: "github"
+      - icon: twitter
+        href: https://twitter.com/nanabi88
+        text: "nanabi88 Twitter"         
+
+    style: "docked"
+    search: true
+    collapse-level: 1
+    contents:
+      - href: index.qmd
+        text: Welcome
+      - section: 01-Introduction/Index.md
+      - section: 02-Data Manipulation/README.md
+      - section: 03-Data Visualization/README.md
+      - section: 04-Basic Statistics/README.md
+        contents:
+          - 04-Basic Statistics/statistics.md
+      - section: 05-Regression/README.md
+        contents:
+          - 05-Regression/Survival Analysis Basics.Rmd
+      - section: 06-Timeseries/README.md
+        contents:
+          - 06-Timeseries/history_of_timeseries_models.Rmd
+          - 06-Timeseries/holt-winters.Rmd
+          - 06-Timeseries/Multiple_Time_Series_Forecast.Rmd
+          - 06-Timeseries/STL_decomposition.Rmd
+      - section: 07-Panel Data Models/README.md
+      - section: 08-Machine Learning/README.md
+      - section: 09-Model Deployment/README.md
+      - section: 10-Publication/README.md
+      - section: 11-Git/README.md
+      - section: 12-Docker/README.md
+      - section: 13-Database/README.md
+      - section: 14-Web Craping/README.md
+      - section: 15-Blogdown/README.md
+      - section: 99-Practice/README.md   
+
+format:
+  html:
+    theme:
+      light: [cosmo, theme.scss] # from https://github.com/sta210-s22/website/blob/main/_quarto.yml
+      dark: [cosmo, theme-dark.scss]
+    code-copy: true
+    code-overflow: wrap
+    toc: true
+
+
+filters:
+  - include-files.lua
+  - quarto
+
+  
