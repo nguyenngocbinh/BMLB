@@ -35,6 +35,12 @@ website:
         text: Welcome
       - section: 01-Introduction/Index.md
       - section: 02-Data Manipulation/README.md
+        contents:
+          - 02-Data Manipulation/pandas-basics.md
+          - 02-Data Manipulation/data-io.md
+          - 02-Data Manipulation/data-transformation.md
+          - 02-Data Manipulation/data-reshaping.md
+          - 02-Data Manipulation/string-datetime.md
       - section: 03-Data Visualization/README.md
       - section: 04-Basic Statistics/README.md
         contents:
